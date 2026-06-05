@@ -3,9 +3,9 @@
 > `codex-app-server-daemon` is experimental and its lifecycle contract may
 > change while the remote-management flow is still being developed.
 
-`codex-app-server-daemon` backs the machine-readable `codex app-server`
+`codex-app-server-daemon` backs the machine-readable `hoondex app-server`
 lifecycle commands used by remote clients such as the desktop and mobile apps.
-It is intended for Codex instances launched over SSH, including fresh developer
+It is intended for Hoondex instances launched over SSH, including fresh developer
 machines that should expose app-server with `remote_control` enabled.
 
 ## Platform support
@@ -46,7 +46,7 @@ pidfile-backed detached process, and launches a detached updater loop.
 
 ## Installation and update cases
 
-The daemon assumes Codex is installed through `install.sh` and always launches
+The daemon assumes Hoondex is installed through `install.sh` and always launches
 the standalone managed binary under `CODEX_HOME`.
 
 | Situation | What starts | Does this daemon fetch new binaries? | Does a running app-server eventually move to a newer binary on its own? |
@@ -92,7 +92,7 @@ JSON-RPC initialize handshake on the Unix control socket.
 for future starts. If a managed app-server is already running, they restart it
 so the new setting takes effect immediately.
 
-Top-level `codex remote-control` bootstraps with `--remote-control` when the
+Top-level `hoondex remote-control` bootstraps with `--remote-control` when the
 updater loop is not running. Otherwise it enables remote control and starts the
 daemon normally.
 

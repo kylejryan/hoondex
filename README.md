@@ -1,69 +1,88 @@
-<p align="center"><strong>Codex CLI</strong> is a coding agent from OpenAI that runs locally on your computer.
-<p align="center">
-  <img src="https://github.com/openai/codex/blob/main/.github/codex-cli-splash.png" alt="Codex CLI splash" width="80%" />
-</p>
-</br>
-If you want Codex in your code editor (VS Code, Cursor, Windsurf), <a href="https://developers.openai.com/codex/ide">install in your IDE.</a>
-</br>If you want the desktop app experience, run <code>codex app</code> or visit <a href="https://chatgpt.com/codex?app-landing-page=true">the Codex App page</a>.
-</br>If you are looking for the <em>cloud-based agent</em> from OpenAI, <strong>Codex Web</strong>, go to <a href="https://chatgpt.com/codex">chatgpt.com/codex</a>.</p>
+<strong>Hoondex CLI</strong> is a coding agent that runs locally on your computer, powered by the Hoonify-hosted DeepSeek V4 Pro model.
 
 ---
 
 ## Quickstart
 
-### Installing and running Codex CLI
-
-Run the following on Mac or Linux to install Codex CLI:
+Hoondex is built and run from source (see [Running from source](#running-from-source)). The fastest path:
 
 ```shell
-curl -fsSL https://chatgpt.com/codex/install.sh | sh
+# from the repo root
+ln -s "$(pwd)/hoondex-dev" ~/.local/bin/hoondex-dev
+hoondex-dev
 ```
 
-Run the following on Windows to install Codex CLI:
-
-```
-powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 | iex"
-```
-
-Codex CLI can also be installed via the following package managers:
+This puts the launcher on your `PATH`, so `hoondex-dev` (and the release `hoondex`
+set up below) run from **any directory** — `cd` into whatever project you want and
+just run it. If the command isn't found, make sure `~/.local/bin` is on your
+`PATH` (add it to your shell profile and restart your shell):
 
 ```shell
-# Install using npm
-npm install -g @openai/codex
+export PATH="$HOME/.local/bin:$PATH"
 ```
+
+Set your Hoonify API key before first use (export it from your shell profile so
+it's set in every session):
 
 ```shell
-# Install using Homebrew
-brew install --cask codex
+export HOONIFY_API_KEY=...   # create one on the Hoonify dashboard
 ```
 
-Then simply run `codex` to get started.
+## Running from source
 
-<details>
-<summary>You can also go to the <a href="https://github.com/openai/codex/releases/latest">latest GitHub Release</a> and download the appropriate binary for your platform.</summary>
+If you're developing on this repo, build and run `hoondex` straight from your
+local checkout instead of installing a release.
 
-Each GitHub Release contains many executables, but in practice, you likely want one of these:
+| You run                                              | Builds?                                  | Reflects latest source?                            |
+| ---------------------------------------------------- | ---------------------------------------- | -------------------------------------------------- |
+| `hoondex`                                            | ❌ no — runs the existing release binary | only as of the last `cargo build --release`        |
+| `hoondex-dev`                                         | ✅ yes (fast incremental debug)          | ✅ always — and it won't launch if the build fails |
+| `cargo build --release --bin hoondex` then `hoondex` | ✅ yes (slow release)                     | ✅ as of that build                                |
 
-- macOS
-  - Apple Silicon/arm64: `codex-aarch64-apple-darwin.tar.gz`
-  - x86_64 (older Mac hardware): `codex-x86_64-apple-darwin.tar.gz`
-- Linux
-  - x86_64: `codex-x86_64-unknown-linux-musl.tar.gz`
-  - arm64: `codex-aarch64-unknown-linux-musl.tar.gz`
+### Use `hoondex-dev` (always-fresh debug build)
 
-Each archive contains a single entry with the platform baked into the name (e.g., `codex-x86_64-unknown-linux-musl`), so you likely want to rename it to `codex` after extracting it.
+[`hoondex-dev`](./hoondex-dev) builds the binary in debug mode (fast, incremental)
+and launches it, so it always reflects your latest source. Symlink it onto your
+`PATH` once:
 
-</details>
+```shell
+# from the repo root
+ln -s "$(pwd)/hoondex-dev" ~/.local/bin/hoondex-dev
+```
 
-### Using Codex with your ChatGPT plan
+Then run `hoondex-dev` from anywhere — it forwards all args, e.g. `hoondex-dev "explain this codebase"`.
 
-Run `codex` and select **Sign in with ChatGPT**. We recommend signing into your ChatGPT account to use Codex as part of your Plus, Pro, Business, Edu, or Enterprise plan. [Learn more about what's included in your ChatGPT plan](https://help.openai.com/en/articles/11369540-codex-in-chatgpt).
+> Make sure `~/.local/bin` is on your `PATH` (add `export PATH="$HOME/.local/bin:$PATH"` to your shell profile if it isn't).
 
-You can also use Codex with an API key, but this requires [additional setup](https://developers.openai.com/codex/auth#sign-in-with-an-api-key).
+### Use `hoondex` globally (release build)
+
+Build the optimized binary and point a `PATH` entry at it. Because it's a
+symlink, re-running the build refreshes the global `hoondex` with no extra steps:
+
+```shell
+# from the repo root
+cargo build --release --bin hoondex --manifest-path codex-rs/Cargo.toml
+ln -s "$(pwd)/codex-rs/target/release/hoondex" ~/.local/bin/hoondex
+```
+
+Run `hoondex` from anywhere. To pick up later changes, just rebuild:
+
+```shell
+cargo build --release --bin hoondex --manifest-path codex-rs/Cargo.toml
+```
+
+Alternatively, install it straight into `~/.cargo/bin` (already on most `PATH`s):
+
+```shell
+cargo install --path codex-rs/cli --bin hoondex
+```
+
+With `cargo install` you must re-run the command after each change to refresh the
+global binary.
 
 ## Docs
 
-- [**Codex Documentation**](https://developers.openai.com/codex)
+- [**Hoondex Documentation**](https://developers.openai.com/codex)
 - [**Contributing**](./docs/contributing.md)
 - [**Installing & building**](./docs/install.md)
 - [**Open source fund**](./docs/open-source-fund.md)

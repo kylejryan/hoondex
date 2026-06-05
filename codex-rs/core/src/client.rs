@@ -48,6 +48,7 @@ use codex_api::RequestTelemetry;
 use codex_api::ReqwestTransport;
 use codex_api::ResponseCreateWsRequest;
 use codex_api::ResponsesApiRequest;
+use codex_api::ChatClient as ApiChatClient;
 use codex_api::ResponsesClient as ApiResponsesClient;
 use codex_api::ResponsesOptions as ApiResponsesOptions;
 use codex_api::ResponsesWebsocketClient as ApiWebSocketResponsesClient;
@@ -1274,13 +1275,25 @@ impl ModelClientSession {
             let inference_trace_attempt = inference_trace.start_attempt();
             inference_trace_attempt.add_request_headers(&mut options.extra_headers);
             inference_trace_attempt.record_started(&request);
-            let client = ApiResponsesClient::new(
-                transport,
-                client_setup.api_provider,
-                client_setup.api_auth,
-            )
-            .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
-            let stream_result = client.stream_request(request, options).await;
+            // Chat Completions providers (Hoonify) use a different wire client but accept the same
+            // request/options and yield the same stream, so the rest of this path is unchanged.
+            let stream_result = if self.client.state.provider.info().wire_api == WireApi::Chat {
+                let client = ApiChatClient::new(
+                    transport,
+                    client_setup.api_provider,
+                    client_setup.api_auth,
+                )
+                .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
+                client.stream_request(request, options).await
+            } else {
+                let client = ApiResponsesClient::new(
+                    transport,
+                    client_setup.api_provider,
+                    client_setup.api_auth,
+                )
+                .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
+                client.stream_request(request, options).await
+            };
 
             match stream_result {
                 Ok(stream) => {
@@ -1612,6 +1625,21 @@ impl ModelClientSession {
                     }
                 }
 
+                self.stream_responses_api(
+                    prompt,
+                    model_info,
+                    session_telemetry,
+                    effort,
+                    summary,
+                    service_tier,
+                    turn_metadata_header,
+                    inference_trace,
+                )
+                .await
+            }
+            // Chat Completions providers (for example Hoonify) only speak HTTP; there is no
+            // WebSocket transport, so route straight to the HTTP streaming path.
+            WireApi::Chat => {
                 self.stream_responses_api(
                     prompt,
                     model_info,

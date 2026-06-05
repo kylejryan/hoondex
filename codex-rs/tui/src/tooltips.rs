@@ -1,3 +1,9 @@
+// Hoondex shows a random Skyrim-style coding loading tip at session start (see `get_tooltip`), so
+// the upstream announcement-tip and plan/promo tooltip machinery below is intentionally bypassed.
+// It is kept in place (and exercised by tests) rather than deleted so it can be re-enabled later,
+// which leaves several items unused in normal builds.
+#![allow(dead_code)]
+
 use codex_features::FEATURES;
 use codex_protocol::account::PlanType;
 use lazy_static::lazy_static;
@@ -48,42 +54,14 @@ fn experimental_tooltips() -> Vec<&'static str> {
         .collect()
 }
 
-/// Pick a random tooltip to show to the user when starting Codex.
-pub(crate) fn get_tooltip(plan: Option<PlanType>, fast_mode_enabled: bool) -> Option<String> {
+/// Pick a random tooltip to show to the user when starting Hoondex.
+///
+/// Hoondex shows a random Skyrim-style coding loading tip at the start of every session — for the
+/// lols. The upstream announcement/promo machinery (`announcement::fetch_announcement_tip`,
+/// `pick_paid_tooltip`, and the promo constants) is intentionally bypassed for this fork but kept
+/// intact, and exercised by tests, so it can be re-enabled later.
+pub(crate) fn get_tooltip(_plan: Option<PlanType>, _fast_mode_enabled: bool) -> Option<String> {
     let mut rng = rand::rng();
-
-    if let Some(announcement) = announcement::fetch_announcement_tip(plan) {
-        return Some(announcement);
-    }
-
-    // Leave small chance for a random tooltip to be shown.
-    if rng.random_ratio(8, 10) {
-        match plan {
-            Some(plan_type)
-                if matches!(
-                    plan_type,
-                    PlanType::Plus | PlanType::Enterprise | PlanType::Pro | PlanType::ProLite
-                ) || plan_type.is_team_like()
-                    || plan_type.is_business_like() =>
-            {
-                if let Some(tooltip) = pick_paid_tooltip(&mut rng, fast_mode_enabled) {
-                    return Some(tooltip.to_string());
-                }
-            }
-            Some(PlanType::Go) | Some(PlanType::Free) => {
-                return Some(FREE_GO_TOOLTIP.to_string());
-            }
-            _ => {
-                let tooltip = if IS_MACOS {
-                    OTHER_TOOLTIP
-                } else {
-                    OTHER_TOOLTIP_NON_MAC
-                };
-                return Some(tooltip.to_string());
-            }
-        }
-    }
-
     pick_tooltip(&mut rng).map(str::to_string)
 }
 

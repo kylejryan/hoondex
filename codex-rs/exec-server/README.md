@@ -1,17 +1,17 @@
 # codex-exec-server
 
-`codex-exec-server` is the library backing `codex exec-server`, a small
+`codex-exec-server` is the library backing `hoondex exec-server`, a small
 JSON-RPC server for spawning and controlling subprocesses through
 `codex-utils-pty`.
 
 It provides:
 
-- a CLI entrypoint: `codex exec-server`
+- a CLI entrypoint: `hoondex exec-server`
 - a Rust client: `ExecServerClient`
 - a small protocol module with shared request/response types
 
 This crate owns the transport, protocol, and filesystem/process handlers. The
-top-level `codex` binary owns hidden helper dispatch for sandboxed
+top-level `hoondex` binary owns hidden helper dispatch for sandboxed
 filesystem operations and `codex-linux-sandbox`.
 
 ## Transport
@@ -26,14 +26,14 @@ The CLI entrypoint supports:
 
 Remote mode registers the local exec-server with the environment registry,
 then reconnects to the service-provided rendezvous websocket as the environment.
-It uses the standard Codex ChatGPT sign-in state; run `codex login` first when
+It uses the standard Hoondex ChatGPT sign-in state; run `hoondex login` first when
 remote registration needs authentication. Containerized callers that receive an
 Agent Identity JWT in `CODEX_ACCESS_TOKEN` can opt into that auth path with
-`--use-agent-identity-auth`; Codex then registers an Agent task and sends the
+`--use-agent-identity-auth`; Hoondex then registers an Agent task and sends the
 derived AgentAssertion headers on the registry request.
 
 Alternatively, API users can instead use `CODEX_API_KEY`;
-Codex sends it as a bearer token on the registration request. For example:
+Hoondex sends it as a bearer token on the registration request. For example:
 
 ```sh
 CODEX_API_KEY="$OPENAI_API_KEY" \
@@ -351,7 +351,7 @@ or unavailable paths:
 
 Each filesystem request accepts an optional `sandbox` object. When `sandbox`
 contains a `ReadOnly` or `WorkspaceWrite` policy, the operation runs in a
-hidden helper process launched from the top-level `codex` executable and
+hidden helper process launched from the top-level `hoondex` executable and
 prepared through the shared sandbox transform path. Helper requests and
 responses are passed over stdin/stdout.
 
@@ -389,9 +389,9 @@ The crate exports:
   registration mode
 
 Callers must pass `ExecServerRuntimePaths` to `run_main()`. The top-level
-`codex exec-server` command builds these paths from the `codex` arg0 dispatch
+`hoondex exec-server` command builds these paths from the `hoondex` arg0 dispatch
 state. `RemoteEnvironmentConfig::new(...)` also takes the auth provider that
-remote registration should use; the CLI builds that provider from Codex auth
+remote registration should use; the CLI builds that provider from Hoondex auth
 state before starting remote mode.
 
 ## Example session

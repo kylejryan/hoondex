@@ -494,6 +494,22 @@ ignored = [
 # across local dev builds.
 debug = "limited"
 
+# Dependencies are optimized in dev builds (the workspace's own crates stay at opt-level 0 for fast
+# incremental rebuilds), but at opt-level 1 rather than 3: -O1 compiles far faster and runs much
+# cooler on a full/clean/post-pull build while staying plenty responsive. The few render-critical
+# TUI crates keep opt-level 3 below so the interface stays smooth. Bump these back up if any
+# dependency feels sluggish during local development.
+[profile.dev.package."*"]
+opt-level = 1
+
+# Render-hot crates on the TUI draw path — keep fully optimized so the UI stays buttery in dev.
+[profile.dev.package.ratatui]
+opt-level = 3
+[profile.dev.package.crossterm]
+opt-level = 3
+[profile.dev.package.syntect]
+opt-level = 3
+
 [profile.dev-small]
 inherits = "dev"
 opt-level = 0

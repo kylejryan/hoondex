@@ -76,6 +76,8 @@ use codex_memories_read::memory_root;
 use codex_model_provider_info::LEGACY_OLLAMA_CHAT_PROVIDER_ID;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_model_provider_info::OLLAMA_CHAT_PROVIDER_REMOVED_ERROR;
+use codex_model_provider_info::HOONIFY_DEEPSEEK_MODEL_ID;
+use codex_model_provider_info::HOONIFY_PROVIDER_ID;
 use codex_model_provider_info::built_in_model_providers;
 use codex_model_provider_info::merge_configured_model_providers;
 use codex_models_manager::ModelsManagerConfig;
@@ -3067,7 +3069,7 @@ impl Config {
 
         let model_provider_id = model_provider
             .or(cfg.model_provider)
-            .unwrap_or_else(|| "openai".to_string());
+            .unwrap_or_else(|| HOONIFY_PROVIDER_ID.to_string());
         let model_provider = model_providers
             .get(&model_provider_id)
             .ok_or_else(|| {
@@ -3211,7 +3213,14 @@ impl Config {
 
         let forced_login_method = cfg.forced_login_method;
 
-        let model = model.or(cfg.model);
+        // Hoonify serves exactly one model (DeepSeek V4 Pro), so when it is the active provider the
+        // model is pinned to it regardless of any configured/overridden model. For other providers
+        // the normal model resolution applies.
+        let model = if model_provider_id == HOONIFY_PROVIDER_ID {
+            Some(HOONIFY_DEEPSEEK_MODEL_ID.to_string())
+        } else {
+            model.or(cfg.model)
+        };
         let notices = cfg.notice.unwrap_or_default();
         let service_tier = match service_tier_override {
             Some(Some(service_tier)) => Some(service_tier),
@@ -3916,9 +3925,9 @@ fn normalize_guardian_policy_config(value: Option<&str>) -> Option<String> {
     })
 }
 
-/// Returns the path to the Codex configuration directory, which can be
+/// Returns the path to the Hoondex configuration directory, which can be
 /// specified by the `CODEX_HOME` environment variable. If not set, defaults to
-/// `~/.codex`.
+/// `~/.hoondex`.
 ///
 /// - If `CODEX_HOME` is set, the value must exist and be a directory. The
 ///   value will be canonicalized and this function will Err otherwise.

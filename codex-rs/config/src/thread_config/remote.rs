@@ -283,6 +283,8 @@ fn proto_string_map(values: HashMap<String, String>) -> proto::StringMap {
 fn proto_wire_api(wire_api: WireApi) -> proto::WireApi {
     match wire_api {
         WireApi::Responses => proto::WireApi::Responses,
+        // The remote thread-config protocol has no Chat variant; Chat providers are local-only.
+        WireApi::Chat => proto::WireApi::Responses,
     }
 }
 

@@ -1429,14 +1429,14 @@ mod tests {
         let items = vec![
             SelectionItem {
                 name: "Read Only".to_string(),
-                description: Some("Codex can read files".to_string()),
+                description: Some("Hoondex can read files".to_string()),
                 is_current: true,
                 dismiss_on_select: true,
                 ..Default::default()
             },
             SelectionItem {
                 name: "Full Access".to_string(),
-                description: Some("Codex can edit files".to_string()),
+                description: Some("Hoondex can edit files".to_string()),
                 is_current: false,
                 dismiss_on_select: true,
                 ..Default::default()
@@ -1545,7 +1545,7 @@ mod tests {
 
     #[test]
     fn renders_blank_line_between_subtitle_and_items() {
-        let view = make_selection_view(Some("Switch between Codex approval presets"));
+        let view = make_selection_view(Some("Switch between Hoondex approval presets"));
         assert_snapshot!("list_selection_spacing_with_subtitle", render_lines(&view));
     }
 
@@ -1628,7 +1628,7 @@ mod tests {
         let tx = AppEventSender::new(tx_raw);
         let items = vec![SelectionItem {
             name: "Read Only".to_string(),
-            description: Some("Codex can read files".to_string()),
+            description: Some("Hoondex can read files".to_string()),
             is_current: true,
             dismiss_on_select: true,
             ..Default::default()
@@ -1660,7 +1660,7 @@ mod tests {
         let tx = AppEventSender::new(tx_raw);
         let items = vec![SelectionItem {
             name: "Read Only".to_string(),
-            description: Some("Codex can read files".to_string()),
+            description: Some("Hoondex can read files".to_string()),
             is_current: false,
             dismiss_on_select: true,
             ..Default::default()
@@ -2346,7 +2346,7 @@ mod tests {
             SelectionItem {
                 name: "gpt-5.1-codex".to_string(),
                 description: Some(
-                    "Optimized for Codex. Balance of reasoning quality and coding ability."
+                    "Optimized for Hoondex. Balance of reasoning quality and coding ability."
                         .to_string(),
                 ),
                 is_current: true,
@@ -2356,7 +2356,7 @@ mod tests {
             SelectionItem {
                 name: "gpt-5.1-codex-mini".to_string(),
                 description: Some(
-                    "Optimized for Codex. Cheaper, faster, but less capable.".to_string(),
+                    "Optimized for Hoondex. Cheaper, faster, but less capable.".to_string(),
                 ),
                 dismiss_on_select: true,
                 ..Default::default()
@@ -2428,7 +2428,7 @@ mod tests {
             SelectionItem {
                 name: "gpt-5.1-codex".to_string(),
                 description: Some(
-                    "Optimized for Codex. Balance of reasoning quality and coding ability."
+                    "Optimized for Hoondex. Balance of reasoning quality and coding ability."
                         .to_string(),
                 ),
                 is_current: true,
@@ -2438,7 +2438,7 @@ mod tests {
             SelectionItem {
                 name: "gpt-5.1-codex-mini".to_string(),
                 description: Some(
-                    "Optimized for Codex. Cheaper, faster, but less capable.".to_string(),
+                    "Optimized for Hoondex. Cheaper, faster, but less capable.".to_string(),
                 ),
                 dismiss_on_select: true,
                 ..Default::default()

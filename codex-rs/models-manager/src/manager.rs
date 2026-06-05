@@ -410,13 +410,17 @@ fn load_remote_models_from_file() -> Result<Vec<ModelInfo>, std::io::Error> {
     Ok(crate::bundled_models_response()?.models)
 }
 
+/// Model used by default in the TUI when no model is explicitly configured.
+const DEFAULT_MODEL_SLUG: &str = "deepseek-v4-pro";
+
 fn default_model_from_available(available: Vec<ModelPreset>) -> String {
     available
         .iter()
-        .find(|model| model.is_default)
+        .find(|model| model.model == DEFAULT_MODEL_SLUG)
+        .or_else(|| available.iter().find(|model| model.is_default))
         .or_else(|| available.first())
         .map(|model| model.model.clone())
-        .unwrap_or_default()
+        .unwrap_or_else(|| DEFAULT_MODEL_SLUG.to_string())
 }
 
 fn find_model_by_longest_prefix(model: &str, candidates: &[ModelInfo]) -> Option<ModelInfo> {

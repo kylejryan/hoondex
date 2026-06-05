@@ -377,7 +377,7 @@ def test_source_sdk_package_declares_beta_documentation_and_release_files() -> N
         "license": pyproject["project"]["license"],
         "documentation": pyproject["project"]["urls"]["Documentation"],
         "sdist_include": pyproject["tool"]["hatch"]["build"]["targets"]["sdist"]["include"],
-        "readme_is_beta": "# OpenAI Codex Python SDK (Beta)" in readme,
+        "readme_is_beta": "# Hoondex Python SDK (Beta)" in readme,
         "local_license_file": (ROOT / "LICENSE").exists(),
     } == {
         "description": "Python SDK for Codex",

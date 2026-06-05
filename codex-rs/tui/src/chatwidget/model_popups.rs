@@ -17,17 +17,15 @@ impl ChatWidget {
             return;
         }
 
-        let presets: Vec<ModelPreset> = match self.model_catalog.try_list_models() {
-            Ok(models) => models,
-            Err(_) => {
-                self.add_info_message(
-                    "Models are being updated; please try /model again in a moment.".to_string(),
-                    /*hint*/ None,
-                );
-                return;
-            }
-        };
-        self.open_model_popup_with_presets(presets);
+        // Hoondex serves exactly one model: the Hoonify-hosted DeepSeek V4 Pro.
+        // Always present it as the only option in the picker.
+        let mut preset: ModelPreset = codex_models_manager::model_info::model_info_from_slug(
+            codex_model_provider_info::HOONIFY_DEEPSEEK_MODEL_ID,
+        )
+        .into();
+        preset.show_in_picker = true;
+        preset.is_default = true;
+        self.open_model_popup_with_presets(vec![preset]);
     }
 
     fn model_menu_header(&self, title: &str, subtitle: &str) -> Box<dyn Renderable> {
@@ -203,7 +201,7 @@ impl ChatWidget {
 
         let header = self.model_menu_header(
             "Select Model and Effort",
-            "Access legacy models by running codex -m <model_name> or in your config.toml",
+            "Access legacy models by running hoondex -m <model_name> or in your config.toml",
         );
         self.bottom_pane.show_selection_view(SelectionViewParams {
             footer_hint: Some(self.bottom_pane.standard_popup_hint_line()),

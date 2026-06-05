@@ -1,6 +1,6 @@
-# OpenAI Codex Python SDK (Beta) - API Reference
+# Hoondex Python SDK (Beta) - API Reference
 
-Public surface of `openai_codex` for Codex workflows.
+Public surface of `openai_codex` for Hoondex workflows.
 
 This SDK is in beta. Public APIs may change before `1.0`. Turn streams are routed by turn ID so one client can consume multiple active turns concurrently.
 Thread starts default to `ApprovalMode.auto_review`; turn starts accept an optional `approval_mode` override.
@@ -9,7 +9,7 @@ Thread starts default to `ApprovalMode.auto_review`; turn starts accept an optio
 
 ```python
 from openai_codex import (
-    Codex,
+    Hoondex,
     AsyncCodex,
     CodexConfig,
     ApprovalMode,
@@ -48,12 +48,12 @@ from openai_codex.types import (
 
 - Version: `openai_codex.__version__`
 - Requires Python >= 3.10
-- Public Codex protocol value and event types live in `openai_codex.types`
+- Public Hoondex protocol value and event types live in `openai_codex.types`
 
-## Codex (sync)
+## Hoondex (sync)
 
 ```python
-Codex(config: CodexConfig | None = None)
+Hoondex(config: CodexConfig | None = None)
 ```
 
 Properties/methods:
@@ -76,7 +76,7 @@ Properties/methods:
 Context manager:
 
 ```python
-with Codex() as codex:
+with Hoondex() as codex:
     ...
 ```
 
@@ -189,9 +189,9 @@ Use `turn(...)` when you need low-level turn control (`stream()`, `steer()`,
 Use `sandbox=` consistently on thread lifecycle methods and turns:
 
 ```python
-from openai_codex import Codex, Sandbox
+from openai_codex import Hoondex, Sandbox
 
-with Codex() as codex:
+with Hoondex() as codex:
     thread = codex.thread_start(sandbox=Sandbox.workspace_write)
     result = thread.run("Review the diff only.", sandbox=Sandbox.read_only)
 ```
@@ -202,7 +202,7 @@ Presets:
 - `Sandbox.workspace_write`: the normal default for projects with a recorded trust decision; read files and write inside the workspace and configured writable roots.
 - `Sandbox.full_access`: run without filesystem access restrictions.
 
-When `sandbox=` is omitted, Codex uses its configured default. A sandbox
+When `sandbox=` is omitted, Hoondex uses its configured default. A sandbox
 passed to `run(...)` or `turn(...)` applies to that turn and subsequent turns.
 
 ## TurnHandle / AsyncTurnHandle
@@ -217,7 +217,7 @@ passed to `run(...)` or `turn(...)` applies to that turn and subsequent turns.
 Behavior notes:
 
 - `stream()` and `run()` consume only notifications for their own turn ID
-- one `Codex` instance can stream multiple active turns concurrently
+- one `Hoondex` instance can stream multiple active turns concurrently
 
 ### AsyncTurnHandle
 
@@ -250,7 +250,7 @@ Use a plain `str` as shorthand for `TextInput(...)` anywhere a turn input is acc
 
 ## Public Types
 
-The SDK wrappers return and accept public Codex protocol models wherever possible:
+The SDK wrappers return and accept public Hoondex protocol models wherever possible:
 
 ```python
 from openai_codex.types import (
@@ -284,9 +284,9 @@ from openai_codex import (
 ## Example
 
 ```python
-from openai_codex import Codex
+from openai_codex import Hoondex
 
-with Codex() as codex:
+with Hoondex() as codex:
     thread = codex.thread_start(model="gpt-5.4", config={"model_reasoning_effort": "high"})
     result = thread.run("Say hello in one sentence.")
     print(result.final_response)

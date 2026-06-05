@@ -14,11 +14,11 @@ help:
 # `codex`
 alias c := codex
 codex *args:
-    cargo run --bin codex -- {args}
+    cargo run --bin hoondex -- {args}
 
 # `codex exec`
 exec *args:
-    cargo run --bin codex -- exec {args}
+    cargo run --bin hoondex -- exec {args}
 
 # Start `codex exec-server` and run codex-tui.
 [no-cd]
@@ -34,7 +34,7 @@ file-search *args:
 # Build the CLI and run the app-server test client
 app-server-test-client *args:
     cargo build -p codex-cli
-    cargo run -p codex-app-server-test-client -- --codex-bin ./target/debug/codex {args}
+    cargo run -p codex-app-server-test-client -- --codex-bin ./target/debug/hoondex {args}
 
 # Format the justfile, Rust, Python SDK code, and Python scripts.
 fmt:

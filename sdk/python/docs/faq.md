@@ -28,13 +28,13 @@ Choose `run()` for most apps. Choose `stream()` for progress UIs, custom timeout
 
 ## Sync vs async clients
 
-- `Codex` is the sync public API.
+- `Hoondex` is the sync public API.
 - `AsyncCodex` is an async replica of the same public API shape.
 - Prefer `async with AsyncCodex()` for async code. It is the standard path for
   explicit startup/shutdown, and `AsyncCodex` initializes lazily on context
   entry or first awaited API use.
 
-If your app is not already async, stay with `Codex`.
+If your app is not already async, stay with `Hoondex`.
 
 ## How do I log in?
 
@@ -78,7 +78,7 @@ The presets are:
 - `Sandbox.workspace_write`: the normal default for projects with a recorded trust decision; read files and write inside the workspace and configured writable roots.
 - `Sandbox.full_access`: run without filesystem access restrictions.
 
-When `sandbox=` is omitted, Codex uses its configured default. A turn
+When `sandbox=` is omitted, Hoondex uses its configured default. A turn
 sandbox override applies to that turn and subsequent turns.
 
 ## Why only `thread_start(...)` and `thread_resume(...)`?
@@ -92,13 +92,13 @@ This avoids duplicate ways to do the same operation and keeps behavior explicit.
 
 ## Why does constructor fail?
 
-`Codex()` is eager: it starts transport and calls `initialize` in `__init__`.
+`Hoondex()` is eager: it starts transport and calls `initialize` in `__init__`.
 
 Common causes:
 
 - installation is incomplete and the pinned `openai-codex-cli-bin` dependency is missing
 - local `codex_bin` override points to a missing file
-- a custom local Codex executable does not support the SDK operation being used
+- a custom local Hoondex executable does not support the SDK operation being used
 
 ## Why does a turn "hang"?
 

@@ -9,3 +9,21 @@ rustflags = ["-C", "link-arg=/STACK:8388608", "-C", "link-arg=/arm64hazardfree"]
 
 [target.'cfg(all(windows, target_env = "gnu"))']
 rustflags = ["-C", "link-arg=-Wl,--stack,8388608"]
+
+# ---------------------------------------------------------------------------
+# Developer ergonomics: the inner-loop should be `check`, not `build`.
+#
+# The `hoondex` binary's dependency tree spans ~108 of the 122 workspace
+# crates, so a full `cargo build` is inherently expensive. `cargo check`
+# skips codegen and linking (the slow, CPU-/heat-heavy steps) and gives the
+# same compiler errors, so prefer it while iterating. Only `build`/`run` when
+# you actually need to execute the binary.
+[alias]
+# Type-check the whole workspace (no codegen, no link). Primary inner loop.
+ck = "check --workspace --all-targets"
+# Type-check just the CLI and its dependencies (skips test-only/helper crates).
+ckc = "check -p codex-cli"
+# Lint the whole workspace, warnings denied (matches CI).
+lint = "clippy --workspace --all-targets -- -D warnings"
+# Build + run the hoondex binary in dev mode. Args after `--`.
+hx = "run -p codex-cli --bin hoondex --"

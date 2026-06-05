@@ -6,6 +6,7 @@ use codex_protocol::openai_models::ModelMessages;
 use codex_protocol::openai_models::ModelVisibility;
 use codex_protocol::openai_models::TruncationMode;
 use codex_protocol::openai_models::TruncationPolicyConfig;
+use codex_protocol::openai_models::InputModality;
 use codex_protocol::openai_models::WebSearchToolType;
 use codex_protocol::openai_models::default_input_modalities;
 
@@ -62,8 +63,18 @@ pub fn with_config_overrides(mut model: ModelInfo, config: &ModelsManagerConfig)
     model
 }
 
+/// The Hoonify-hosted DeepSeek model. Kept in sync with the wire id returned by
+/// `GET https://api.hoonify.ai/v1/models`.
+const HOONIFY_DEEPSEEK_SLUG: &str = "deepseek-ai/DeepSeek-V4-Pro";
+
 /// Build a minimal fallback model descriptor for missing/unknown slugs.
 pub fn model_info_from_slug(slug: &str) -> ModelInfo {
+    // The Hoonify DeepSeek model is not in the bundled OpenAI catalog, but it is a known, supported
+    // model rather than an "unknown" one — provide curated metadata so it does not trip the
+    // fallback-metadata warning and uses the correct context window.
+    if slug == HOONIFY_DEEPSEEK_SLUG {
+        return hoonify_deepseek_model_info(slug);
+    }
     warn!("Unknown model {slug} is used. This will use fallback model metadata.");
     ModelInfo {
         slug: slug.to_string(),
@@ -98,6 +109,52 @@ pub fn model_info_from_slug(slug: &str) -> ModelInfo {
         experimental_supported_tools: Vec::new(),
         input_modalities: default_input_modalities(),
         used_fallback_model_metadata: true, // this is the fallback model metadata
+        supports_search_tool: false,
+        auto_review_model_override: None,
+        tool_mode: None,
+        multi_agent_version: None,
+    }
+}
+
+/// Curated metadata for the Hoonify-hosted DeepSeek V4 Pro model. Mirrors the generic fallback
+/// descriptor but reports the real 262,144-token context window, advertises text-only input, and
+/// is marked as authoritative (so no fallback-metadata warning is emitted).
+fn hoonify_deepseek_model_info(slug: &str) -> ModelInfo {
+    ModelInfo {
+        slug: slug.to_string(),
+        display_name: "DeepSeek V4 Pro".to_string(),
+        description: Some(
+            "DeepSeek V4 Pro served via the Hoonify chat-completions gateway.".to_string(),
+        ),
+        default_reasoning_level: None,
+        supported_reasoning_levels: Vec::new(),
+        shell_type: ConfigShellToolType::Default,
+        visibility: ModelVisibility::None,
+        supported_in_api: true,
+        priority: 1,
+        additional_speed_tiers: Vec::new(),
+        service_tiers: Vec::new(),
+        default_service_tier: None,
+        availability_nux: None,
+        upgrade: None,
+        base_instructions: BASE_INSTRUCTIONS.to_string(),
+        model_messages: None,
+        supports_reasoning_summaries: false,
+        default_reasoning_summary: ReasoningSummary::Auto,
+        support_verbosity: false,
+        default_verbosity: None,
+        apply_patch_tool_type: None,
+        web_search_tool_type: WebSearchToolType::Text,
+        truncation_policy: TruncationPolicyConfig::bytes(/*limit*/ 10_000),
+        supports_parallel_tool_calls: true,
+        supports_image_detail_original: false,
+        context_window: Some(262_144),
+        max_context_window: Some(262_144),
+        auto_compact_token_limit: None,
+        effective_context_window_percent: 95,
+        experimental_supported_tools: Vec::new(),
+        input_modalities: vec![InputModality::Text],
+        used_fallback_model_metadata: false,
         supports_search_tool: false,
         auto_review_model_override: None,
         tool_mode: None,
