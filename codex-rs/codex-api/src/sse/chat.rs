@@ -1,6 +1,8 @@
 use crate::common::ResponseEvent;
 use crate::common::ResponseStream;
 use crate::error::ApiError;
+use crate::sse::tool_call_text::extract_text_tool_calls;
+use crate::sse::tool_call_text::first_tool_call_marker;
 use crate::telemetry::SseTelemetry;
 use codex_client::StreamResponse;
 use codex_protocol::models::ContentItem;
@@ -74,11 +76,16 @@ pub async fn process_chat_sse<S>(
     let mut assistant_item: Option<ResponseItem> = None;
     let mut reasoning_item: Option<ResponseItem> = None;
     let mut completed_sent = false;
+    // Set once the provider returns a properly structured tool call. While it
+    // stays false we treat tool-call markup leaked into assistant text as a
+    // fallback signal worth recovering.
+    let mut emitted_structured_tool_call = false;
 
     async fn flush_and_complete(
         tx_event: &mpsc::Sender<Result<ResponseEvent, ApiError>>,
         reasoning_item: &mut Option<ResponseItem>,
         assistant_item: &mut Option<ResponseItem>,
+        recover_text_tool_calls: bool,
     ) {
         if let Some(reasoning) = reasoning_item.take() {
             let _ = tx_event
@@ -87,18 +94,21 @@ pub async fn process_chat_sse<S>(
         }
 
         if let Some(assistant) = assistant_item.take() {
+            // The model may have leaked tool calls into the assistant text
+            // instead of the structured `tool_calls` field. Recover them so the
+            // turn can proceed, keeping any prose written before the leak.
+            if recover_text_tool_calls
+                && emit_recovered_tool_calls(tx_event, &assistant).await
+            {
+                send_completed(tx_event).await;
+                return;
+            }
             let _ = tx_event
                 .send(Ok(ResponseEvent::OutputItemDone(assistant)))
                 .await;
         }
 
-        let _ = tx_event
-            .send(Ok(ResponseEvent::Completed {
-                response_id: String::new(),
-                token_usage: None,
-                end_turn: None,
-            }))
-            .await;
+        send_completed(tx_event).await;
     }
 
     loop {
@@ -115,7 +125,13 @@ pub async fn process_chat_sse<S>(
             }
             Ok(None) => {
                 if !completed_sent {
-                    flush_and_complete(&tx_event, &mut reasoning_item, &mut assistant_item).await;
+                    flush_and_complete(
+                        &tx_event,
+                        &mut reasoning_item,
+                        &mut assistant_item,
+                        !emitted_structured_tool_call,
+                    )
+                    .await;
                 }
                 return;
             }
@@ -137,7 +153,13 @@ pub async fn process_chat_sse<S>(
 
         if data == "[DONE]" || data == "DONE" {
             if !completed_sent {
-                flush_and_complete(&tx_event, &mut reasoning_item, &mut assistant_item).await;
+                flush_and_complete(
+                    &tx_event,
+                    &mut reasoning_item,
+                    &mut assistant_item,
+                    !emitted_structured_tool_call,
+                )
+                .await;
             }
             return;
         }
@@ -313,10 +335,79 @@ pub async fn process_chat_sse<S>(
                         call_id: id.unwrap_or_else(|| format!("tool-call-{index}")),
                     };
                     let _ = tx_event.send(Ok(ResponseEvent::OutputItemDone(item))).await;
+                    emitted_structured_tool_call = true;
                 }
             }
         }
     }
+}
+
+async fn send_completed(tx_event: &mpsc::Sender<Result<ResponseEvent, ApiError>>) {
+    let _ = tx_event
+        .send(Ok(ResponseEvent::Completed {
+            response_id: String::new(),
+            token_usage: None,
+            end_turn: None,
+        }))
+        .await;
+}
+
+/// Concatenate the `OutputText` parts of an assistant message.
+fn assistant_output_text(content: &[ContentItem]) -> String {
+    content
+        .iter()
+        .filter_map(|item| match item {
+            ContentItem::OutputText { text } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect()
+}
+
+/// If `assistant` carries tool-call markup the provider failed to structure,
+/// emit recovered `FunctionCall` items (plus any leading prose) and return
+/// `true`. The original assistant message is then dropped by the caller.
+async fn emit_recovered_tool_calls(
+    tx_event: &mpsc::Sender<Result<ResponseEvent, ApiError>>,
+    assistant: &ResponseItem,
+) -> bool {
+    let ResponseItem::Message { content, .. } = assistant else {
+        return false;
+    };
+    let text = assistant_output_text(content);
+    let calls = extract_text_tool_calls(&text);
+    if calls.is_empty() {
+        return false;
+    }
+
+    if let Some(idx) = first_tool_call_marker(&text) {
+        let prose = text[..idx].trim();
+        if !prose.is_empty() {
+            let _ = tx_event
+                .send(Ok(ResponseEvent::OutputItemDone(ResponseItem::Message {
+                    id: None,
+                    role: "assistant".to_string(),
+                    content: vec![ContentItem::OutputText {
+                        text: prose.to_string(),
+                    }],
+                    phase: None,
+                })))
+                .await;
+        }
+    }
+
+    for (index, call) in calls.into_iter().enumerate() {
+        let item = ResponseItem::FunctionCall {
+            id: None,
+            name: call.name,
+            namespace: None,
+            arguments: call.arguments,
+            call_id: format!("text-tool-call-{index}"),
+        };
+        let _ = tx_event
+            .send(Ok(ResponseEvent::OutputItemDone(item)))
+            .await;
+    }
+    true
 }
 
 async fn append_assistant_text(

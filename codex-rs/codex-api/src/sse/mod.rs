@@ -1,5 +1,6 @@
 pub(crate) mod chat;
 pub(crate) mod responses;
+pub(crate) mod tool_call_text;
 
 pub(crate) use chat::spawn_chat_stream;
 pub(crate) use responses::ResponsesStreamEvent;
