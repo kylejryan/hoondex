@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
@@ -363,6 +364,15 @@ impl ToolRegistry {
         self.tools.get(name).map(Arc::clone)
     }
 
+    /// Flat names of every registered tool. Used by the compatibility shim to
+    /// decide which canonical tool a foreign call can be rewritten onto.
+    fn registered_flat_names(&self) -> HashSet<String> {
+        self.tools
+            .keys()
+            .map(|name| flat_tool_name(name).into_owned())
+            .collect()
+    }
+
     #[cfg(test)]
     pub(crate) fn tool_names_for_test(&self) -> Vec<ToolName> {
         let mut names = self.tools.keys().cloned().collect::<Vec<_>>();
@@ -410,6 +420,26 @@ impl ToolRegistry {
         mut invocation: ToolInvocation,
         terminal_outcome_reached: Option<Arc<AtomicBool>>,
     ) -> Result<AnyToolResult, FunctionCallError> {
+        // Compatibility shim: models served via Chat Completions gateways (e.g.
+        // Hoonify/DeepSeek) often emit tool names and argument shapes borrowed
+        // from other agent harnesses. On a registry miss, try to rewrite the
+        // call onto a registered tool before giving up. Compliant calls match
+        // on the first lookup and skip this entirely.
+        if self.tool(&invocation.tool_name).is_none()
+            && let Some((canonical, payload)) = crate::tools::compat::resolve_tool_compat(
+                &self.registered_flat_names(),
+                &invocation.tool_name,
+                &invocation.payload,
+            )
+        {
+            warn!(
+                "tool compat: remapped `{}` -> `{}`",
+                invocation.tool_name, canonical
+            );
+            invocation.tool_name = canonical;
+            invocation.payload = payload;
+        }
+
         let tool_name = invocation.tool_name.clone();
         let tool_name_flat = flat_tool_name(&tool_name);
         let call_id_owned = invocation.call_id.clone();
@@ -445,7 +475,15 @@ impl ToolRegistry {
         let tool = match self.tool(&tool_name) {
             Some(tool) => tool,
             None => {
-                let message = unsupported_tool_call_message(&invocation.payload, &tool_name);
+                let message = match &invocation.payload {
+                    ToolPayload::Custom { .. } => {
+                        unsupported_tool_call_message(&invocation.payload, &tool_name)
+                    }
+                    _ => crate::tools::compat::unknown_tool_message(
+                        &tool_name,
+                        &self.registered_flat_names(),
+                    ),
+                };
                 let log_payload = invocation.payload.log_payload();
                 otel.tool_result_with_tags(
                     tool_name_flat.as_ref(),
