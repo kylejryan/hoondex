@@ -80,11 +80,4 @@ cargo install --path codex-rs/cli --bin hoondex
 With `cargo install` you must re-run the command after each change to refresh the
 global binary.
 
-## Docs
-
-- [**Hoondex Documentation**](https://developers.openai.com/codex)
-- [**Contributing**](./docs/contributing.md)
-- [**Installing & building**](./docs/install.md)
-- [**Open source fund**](./docs/open-source-fund.md)
-
 This repository is licensed under the [Apache-2.0 License](LICENSE).
