@@ -8,6 +8,11 @@ use serde_json::Value;
 use serde_json::json;
 use std::collections::HashMap;
 
+const CHAT_COMPLETIONS_TOOL_INSTRUCTIONS: &str = r#"You are running inside the Hoondex CLI through a Chat Completions tool-calling adapter.
+The request's `tools` array is the authoritative list of available host actions. When you need to inspect files, run shell commands, edit code, search, or perform any other host action, emit native `tool_calls` using one of those exact tool names and argument schemas.
+Do not merely say that you will inspect files, run commands, or make edits. Call the appropriate tool.
+Do not invent XML tags, markdown tool blocks, or tool names from other agent harnesses. If a desired helper is absent, choose the closest provided tool or explain the limitation."#;
+
 /// Translate a Responses-API request into a Chat Completions request body.
 ///
 /// Codex builds every turn as a `ResponsesApiRequest`. Providers that only speak the classic
@@ -15,9 +20,14 @@ use std::collections::HashMap;
 /// `messages` array plus chat-style `tools`. This is the inverse of the SSE translation in
 /// `crate::sse::chat`.
 pub(crate) fn build_chat_completions_body(request: &ResponsesApiRequest) -> Value {
+    let tools = responses_tools_to_chat(&request.tools);
+
     let mut messages = Vec::<Value>::new();
     if !request.instructions.is_empty() {
         messages.push(json!({"role": "system", "content": request.instructions}));
+    }
+    if !tools.is_empty() {
+        messages.push(json!({"role": "system", "content": CHAT_COMPLETIONS_TOOL_INSTRUCTIONS}));
     }
 
     let input = request.input.as_slice();
@@ -28,7 +38,7 @@ pub(crate) fn build_chat_completions_body(request: &ResponsesApiRequest) -> Valu
     let mut last_emitted_role: Option<&str> = None;
     for item in input {
         match item {
-            ResponseItem::Message { role, .. } => last_emitted_role = Some(role.as_str()),
+            ResponseItem::Message { role, .. } => last_emitted_role = Some(chat_message_role(role)),
             ResponseItem::FunctionCall { .. } | ResponseItem::LocalShellCall { .. } => {
                 last_emitted_role = Some("assistant")
             }
@@ -114,7 +124,8 @@ pub(crate) fn build_chat_completions_body(request: &ResponsesApiRequest) -> Valu
 
                 for c in content {
                     match c {
-                        ContentItem::InputText { text: t } | ContentItem::OutputText { text: t } => {
+                        ContentItem::InputText { text: t }
+                        | ContentItem::OutputText { text: t } => {
                             text.push_str(t);
                             items.push(json!({"type":"text","text": t}));
                         }
@@ -142,7 +153,7 @@ pub(crate) fn build_chat_completions_body(request: &ResponsesApiRequest) -> Valu
                     json!(text)
                 };
 
-                let mut msg = json!({"role": role, "content": content_value});
+                let mut msg = json!({"role": chat_message_role(role), "content": content_value});
                 if role == "assistant"
                     && let Some(reasoning) = reasoning_by_anchor_index.get(&idx)
                     && let Some(obj) = msg.as_object_mut()
@@ -208,7 +219,9 @@ pub(crate) fn build_chat_completions_body(request: &ResponsesApiRequest) -> Valu
                 let reasoning = reasoning_by_anchor_index.get(&idx).map(String::as_str);
                 push_tool_call_message(&mut messages, tool_call, reasoning);
             }
-            ResponseItem::CustomToolCallOutput { call_id, output, .. } => {
+            ResponseItem::CustomToolCallOutput {
+                call_id, output, ..
+            } => {
                 messages.push(json!({
                     "role": "tool",
                     "tool_call_id": call_id,
@@ -228,7 +241,6 @@ pub(crate) fn build_chat_completions_body(request: &ResponsesApiRequest) -> Valu
     });
 
     if let Some(obj) = payload.as_object_mut() {
-        let tools = responses_tools_to_chat(&request.tools);
         if !tools.is_empty() {
             obj.insert("tools".to_string(), json!(tools));
             obj.insert("tool_choice".to_string(), json!(request.tool_choice));
@@ -240,6 +252,13 @@ pub(crate) fn build_chat_completions_body(request: &ResponsesApiRequest) -> Valu
     }
 
     payload
+}
+
+fn chat_message_role(role: &str) -> &str {
+    match role {
+        "developer" => "system",
+        _ => role,
+    }
 }
 
 fn output_body_to_chat_content(body: &FunctionCallOutputBody) -> Value {
@@ -263,6 +282,10 @@ fn output_body_to_chat_content(body: &FunctionCallOutputBody) -> Value {
     }
 }
 
+#[cfg(test)]
+#[path = "chat_tests.rs"]
+mod tests;
+
 /// Convert Responses-API tool definitions into Chat Completions tool definitions.
 ///
 /// Responses encodes function tools flat (`{"type":"function","name":..,"parameters":..}`),
@@ -271,7 +294,10 @@ fn output_body_to_chat_content(body: &FunctionCallOutputBody) -> Value {
 /// tools that have no Chat Completions equivalent (`web_search`, `image_generation`, custom/
 /// freeform tools, ...) are dropped so the request stays schema-valid for plain chat backends.
 fn responses_tools_to_chat(tools: &[Value]) -> Vec<Value> {
-    tools.iter().flat_map(chat_tools_from_responses_tool).collect()
+    tools
+        .iter()
+        .flat_map(chat_tools_from_responses_tool)
+        .collect()
 }
 
 fn chat_tools_from_responses_tool(tool: &Value) -> Vec<Value> {
@@ -303,7 +329,12 @@ fn chat_tools_from_responses_tool(tool: &Value) -> Vec<Value> {
         Some("namespace") => obj
             .get("tools")
             .and_then(Value::as_array)
-            .map(|inner| inner.iter().flat_map(chat_tools_from_responses_tool).collect())
+            .map(|inner| {
+                inner
+                    .iter()
+                    .flat_map(chat_tools_from_responses_tool)
+                    .collect()
+            })
             .unwrap_or_default(),
         // No Chat Completions equivalent (web_search, image_generation, custom, ...): drop.
         _ => Vec::new(),
@@ -326,7 +357,10 @@ fn push_tool_call_message(messages: &mut Vec<Value>, tool_call: Value, reasoning
                 }
                 existing.push_str(reasoning);
             } else {
-                obj.insert("reasoning".to_string(), Value::String(reasoning.to_string()));
+                obj.insert(
+                    "reasoning".to_string(),
+                    Value::String(reasoning.to_string()),
+                );
             }
         }
         return;

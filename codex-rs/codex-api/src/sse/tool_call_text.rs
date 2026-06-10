@@ -32,8 +32,7 @@ pub(crate) struct ExtractedToolCall {
 }
 
 /// Markers that indicate the assistant text contains a leaked tool call.
-const TOOL_CALL_MARKERS: [&str; 4] =
-    ["<invoke", "<function_calls", "<tool_calls", "<tool_call>"];
+const TOOL_CALL_MARKERS: [&str; 4] = ["<invoke", "<function_calls", "<tool_calls", "<tool_call>"];
 
 /// Extract every leaked tool call from `text`. Returns an empty vec when the
 /// text contains no recognizable tool-call markup.

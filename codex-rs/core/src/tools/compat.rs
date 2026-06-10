@@ -111,16 +111,37 @@ fn classify(name: &str) -> Option<Family> {
         "read" | "read_file" | "readfile" | "cat" | "view" | "view_file" | "open" | "open_file"
         | "get_file" | "show_file" | "fs_read" => Family::Read,
 
-        "ls" | "list" | "list_files" | "list_dir" | "list_directory" | "glob" | "dir"
-        | "tree" | "fs_list" => Family::List,
+        "ls" | "list" | "list_files" | "list_dir" | "list_directory" | "glob" | "dir" | "tree"
+        | "fs_list" => Family::List,
 
-        "grep" | "search" | "ripgrep" | "rg" | "search_file_contents" | "search_files"
-        | "find_in_files" | "codebase_search" | "grep_search" => Family::Search,
+        "grep"
+        | "search"
+        | "ripgrep"
+        | "rg"
+        | "search_file_contents"
+        | "search_files"
+        | "find_in_files"
+        | "codebase_search"
+        | "grep_search" => Family::Search,
 
-        "write" | "write_file" | "writefile" | "create_file" | "create" | "save_file"
-        | "put_file" | "fs_write" | "edit" | "edit_file" | "str_replace" | "str_replace_editor"
-        | "str_replace_based_edit_tool" | "apply_diff" | "replace" | "replace_in_file"
-        | "modify_file" | "search_replace" => Family::Write,
+        "write"
+        | "write_file"
+        | "writefile"
+        | "create_file"
+        | "create"
+        | "save_file"
+        | "put_file"
+        | "fs_write"
+        | "edit"
+        | "edit_file"
+        | "str_replace"
+        | "str_replace_editor"
+        | "str_replace_based_edit_tool"
+        | "apply_diff"
+        | "replace"
+        | "replace_in_file"
+        | "modify_file"
+        | "search_replace" => Family::Write,
 
         "todo_write" | "write_todos" | "update_todo" | "update_todos" | "set_plan"
         | "manage_todo_list" | "todos" => Family::Plan,
@@ -201,11 +222,21 @@ fn search_command(args: &Value) -> Option<String> {
 fn write_or_edit_command(args: &Value) -> Option<String> {
     let path = first_str(
         args,
-        &["file_path", "filepath", "path", "file", "target_file", "filename"],
+        &[
+            "file_path",
+            "filepath",
+            "path",
+            "file",
+            "target_file",
+            "filename",
+        ],
     )?;
 
     let old = first_str(args, &["old_string", "old_str", "old", "find", "old_text"]);
-    let new = first_str(args, &["new_string", "new_str", "new", "replacement", "new_text"]);
+    let new = first_str(
+        args,
+        &["new_string", "new_str", "new", "replacement", "new_text"],
+    );
 
     if let Some(old) = old {
         let new = new.unwrap_or_default();
@@ -226,9 +257,11 @@ fn write_or_edit_command(args: &Value) -> Option<String> {
         ));
     }
 
-    let content =
-        first_str(args, &["content", "contents", "text", "file_text", "data", "body"])
-            .unwrap_or_default();
+    let content = first_str(
+        args,
+        &["content", "contents", "text", "file_text", "data", "body"],
+    )
+    .unwrap_or_default();
     let mkdir = match parent_dir(&path) {
         Some(parent) => format!("mkdir -p -- {} 2>/dev/null; ", shell_quote(&parent)),
         None => String::new(),
@@ -253,7 +286,15 @@ fn plan_call(registered: &HashSet<String>, args: &Value) -> Option<(ToolName, To
         .filter_map(|item| {
             let step = first_str(
                 item,
-                &["step", "content", "title", "text", "task", "name", "description"],
+                &[
+                    "step",
+                    "content",
+                    "title",
+                    "text",
+                    "task",
+                    "name",
+                    "description",
+                ],
             )?;
             let status = item
                 .get("status")
@@ -280,10 +321,16 @@ fn plan_call(registered: &HashSet<String>, args: &Value) -> Option<(ToolName, To
 }
 
 fn normalize_status(status: &str) -> &'static str {
-    match status.trim().to_ascii_lowercase().replace('-', "_").as_str() {
+    match status
+        .trim()
+        .to_ascii_lowercase()
+        .replace('-', "_")
+        .as_str()
+    {
         "completed" | "complete" | "done" | "finished" => "completed",
-        "in_progress" | "inprogress" | "doing" | "active" | "started" | "running"
-        | "current" => "in_progress",
+        "in_progress" | "inprogress" | "doing" | "active" | "started" | "running" | "current" => {
+            "in_progress"
+        }
         _ => "pending",
     }
 }

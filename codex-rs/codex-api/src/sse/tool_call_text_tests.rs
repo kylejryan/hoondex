@@ -52,7 +52,10 @@ fn preserves_inner_angle_brackets_and_newlines() {
         <parameter name=\"cmd\">grep -n \"a < b && c > d\" file\nsecond line</parameter>\n\
         </invoke>";
     let calls = extract_text_tool_calls(text);
-    assert_eq!(args(&calls[0])["cmd"], "grep -n \"a < b && c > d\" file\nsecond line");
+    assert_eq!(
+        args(&calls[0])["cmd"],
+        "grep -n \"a < b && c > d\" file\nsecond line"
+    );
 }
 
 #[test]
@@ -89,7 +92,8 @@ fn plain_prose_yields_nothing() {
 
 #[test]
 fn first_marker_locates_prose_boundary() {
-    let text = "Here is my plan.\n<invoke name=\"shell\"><parameter name=\"cmd\">ls</parameter></invoke>";
+    let text =
+        "Here is my plan.\n<invoke name=\"shell\"><parameter name=\"cmd\">ls</parameter></invoke>";
     let idx = first_tool_call_marker(text).unwrap();
     assert_eq!(&text[..idx], "Here is my plan.\n");
 }

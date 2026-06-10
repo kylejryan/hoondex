@@ -97,9 +97,7 @@ pub async fn process_chat_sse<S>(
             // The model may have leaked tool calls into the assistant text
             // instead of the structured `tool_calls` field. Recover them so the
             // turn can proceed, keeping any prose written before the leak.
-            if recover_text_tool_calls
-                && emit_recovered_tool_calls(tx_event, &assistant).await
-            {
+            if recover_text_tool_calls && emit_recovered_tool_calls(tx_event, &assistant).await {
                 send_completed(tx_event).await;
                 return;
             }
@@ -253,7 +251,8 @@ pub async fn process_chat_sse<S>(
                             {
                                 call_state.name.get_or_insert_with(|| fname.to_string());
                             }
-                            if let Some(arguments) = func.get("arguments").and_then(|a| a.as_str()) {
+                            if let Some(arguments) = func.get("arguments").and_then(|a| a.as_str())
+                            {
                                 call_state.arguments.push_str(arguments);
                             }
                         }
@@ -403,9 +402,7 @@ async fn emit_recovered_tool_calls(
             arguments: call.arguments,
             call_id: format!("text-tool-call-{index}"),
         };
-        let _ = tx_event
-            .send(Ok(ResponseEvent::OutputItemDone(item)))
-            .await;
+        let _ = tx_event.send(Ok(ResponseEvent::OutputItemDone(item))).await;
     }
     true
 }

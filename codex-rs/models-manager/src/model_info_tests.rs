@@ -72,3 +72,13 @@ fn model_context_window_uses_model_value_without_override() {
 
     assert_eq!(updated, model);
 }
+
+#[test]
+fn hoonify_deepseek_uses_full_security_focused_prompt() {
+    let model = model_info_from_slug(HOONIFY_DEEPSEEK_SLUG);
+
+    assert_eq!(
+        model.base_instructions,
+        include_str!("../hoonify_security_focused_prompt.md")
+    );
+}

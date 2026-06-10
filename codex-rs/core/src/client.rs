@@ -33,6 +33,7 @@ use std::sync::atomic::Ordering;
 
 use codex_api::ApiError;
 use codex_api::AuthProvider;
+use codex_api::ChatClient as ApiChatClient;
 use codex_api::CompactClient as ApiCompactClient;
 use codex_api::CompactionInput as ApiCompactionInput;
 use codex_api::Compression;
@@ -48,7 +49,6 @@ use codex_api::RequestTelemetry;
 use codex_api::ReqwestTransport;
 use codex_api::ResponseCreateWsRequest;
 use codex_api::ResponsesApiRequest;
-use codex_api::ChatClient as ApiChatClient;
 use codex_api::ResponsesClient as ApiResponsesClient;
 use codex_api::ResponsesOptions as ApiResponsesOptions;
 use codex_api::ResponsesWebsocketClient as ApiWebSocketResponsesClient;
@@ -1278,12 +1278,9 @@ impl ModelClientSession {
             // Chat Completions providers (Hoonify) use a different wire client but accept the same
             // request/options and yield the same stream, so the rest of this path is unchanged.
             let stream_result = if self.client.state.provider.info().wire_api == WireApi::Chat {
-                let client = ApiChatClient::new(
-                    transport,
-                    client_setup.api_provider,
-                    client_setup.api_auth,
-                )
-                .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
+                let client =
+                    ApiChatClient::new(transport, client_setup.api_provider, client_setup.api_auth)
+                        .with_telemetry(Some(request_telemetry), Some(sse_telemetry));
                 client.stream_request(request, options).await
             } else {
                 let client = ApiResponsesClient::new(

@@ -12,7 +12,8 @@ fn func(args: Value) -> ToolPayload {
 }
 
 fn resolve(reg: &[&str], name: &str, args: Value) -> Option<(ToolName, Value)> {
-    let (tool, payload) = resolve_tool_compat(&registered(reg), &ToolName::plain(name), &func(args))?;
+    let (tool, payload) =
+        resolve_tool_compat(&registered(reg), &ToolName::plain(name), &func(args))?;
     let ToolPayload::Function { arguments } = payload else {
         panic!("expected function payload");
     };
@@ -98,12 +99,7 @@ fn edit_uses_python_exact_replace() {
 
 #[test]
 fn single_quotes_in_paths_are_escaped() {
-    let (_, args) = resolve(
-        &["shell_command"],
-        "read",
-        json!({"path": "a'b.txt"}),
-    )
-    .unwrap();
+    let (_, args) = resolve(&["shell_command"], "read", json!({"path": "a'b.txt"})).unwrap();
     assert_eq!(args["command"], "cat -- 'a'\\''b.txt'");
 }
 
@@ -136,7 +132,14 @@ fn unknown_tool_returns_none() {
 #[test]
 fn plan_without_shell_target_still_maps() {
     // update_plan present but no shell tool: plan mapping is independent.
-    assert!(resolve(&["update_plan"], "todo_write", json!({"todos": [{"content": "x"}]})).is_some());
+    assert!(
+        resolve(
+            &["update_plan"],
+            "todo_write",
+            json!({"todos": [{"content": "x"}]})
+        )
+        .is_some()
+    );
 }
 
 #[test]
@@ -151,14 +154,21 @@ fn custom_payload_is_not_translated() {
         input: "patch".to_string(),
     };
     assert!(
-        resolve_tool_compat(&registered(&["shell_command"]), &ToolName::plain("write"), &payload)
-            .is_none()
+        resolve_tool_compat(
+            &registered(&["shell_command"]),
+            &ToolName::plain("write"),
+            &payload
+        )
+        .is_none()
     );
 }
 
 #[test]
 fn unknown_tool_message_lists_registered_names() {
-    let msg = unknown_tool_message(&ToolName::plain("frob"), &registered(&["shell_command", "apply_patch"]));
+    let msg = unknown_tool_message(
+        &ToolName::plain("frob"),
+        &registered(&["shell_command", "apply_patch"]),
+    );
     assert!(msg.contains("frob"));
     assert!(msg.contains("apply_patch"));
     assert!(msg.contains("shell_command"));
